@@ -1,12 +1,40 @@
+"use client"
+
 import "./demo.css";
 import "./demoMQ.css";
 
-import { IconArrowDown,  IconShield} from "@tabler/icons-react";
+import { IconArrowDown,} from "@tabler/icons-react";
+import { IconCalendar, IconDatabase, IconClock } from "@tabler/icons-react";
+import { useState } from "react";
 
-import DemoFunction from "./_demoFunction/demoFunction";
 
+import DemoFunction from "./_demoFunction/demoAppointment/demoFunction";
+import DemoInventory from "./_demoFunction/demoInventory/demoInventory";
 
+type DemoKey = "appointment" | "inventory";
 const Demo = () => {
+
+  const [activeDemo, setActiveDemo] = useState<DemoKey>("appointment");
+
+  const demoOptions: {
+    id: DemoKey | "soon";
+    label: string;
+    icon: React.ReactNode;
+    disabled?: boolean;
+  }[] = [
+    { id: "appointment", label: "Appointment", icon: <IconCalendar size={20} /> },
+    { id: "inventory", label: "Inventory", icon: <IconDatabase size={20} /> },
+    { id: "soon", label: "More soon", icon: <IconClock size={20} />, disabled: true },
+  ];
+
+  const demoComponents: Record<DemoKey, React.ComponentType> = {
+    appointment: DemoFunction,
+    inventory: DemoInventory,
+  };
+
+  const ActiveDemo = demoComponents[activeDemo];
+
+
 return (
     <div className="demo">
       <div className="demo-box">   
@@ -16,45 +44,58 @@ return (
             <IconArrowDown size={"24px"} color="#00889a" />
             <p>Try Our Demo</p>
           </div>
-          
-          
+          <div className="select-demo">
+            <p className="select-demo-regular">Select the type of demo for you</p>
+            {/* <div className="select-demo-options">
+              {demoOptions.map((demo) => (
+                <button
+                  key={demo.id}
+                  disabled={demo.disabled}
+                  onClick={() => {
+                    if (demo.id !== "soon") {
+                      setActiveDemo(demo.id);
+                    }
+                  }}
+                  className={activeDemo === demo.id ? "active-demo" : ""}
+                >
+                  {demo.label}
+                </button>
+              ))}
+            </div> */}
+          </div>
         </div>  
 
         <div className="demo-box-in">
-          <div className="demo-box-in-toggle">
-          </div>
 
           <div className="demo-box-in-main">  
             {/* demo content here */}
             {/* <p>demo</p> */}
-            <DemoFunction />
-
-
-
-
+            {/* <DemoFunction /> */}
+            {/* <DemoInventory /> */}
+            <ActiveDemo />
           </div>
 
+          
           <div className="demo-box-in-toggle">
             <div className="demo-box-in-toggle-bg">
-              {/* <div className="demo-box-in-toggle-bg-user">
-                <div className="demo-box-in-toggle-bg-user-icon">
-                  <User size={24} color="#00889a" />
-                </div>                
-                <p>User</p>
-              </div> */}
-              <div className="demo-box-in-toggle-bg-user">
-                <div className="demo-box-in-toggle-bg-user-icon">
-                  <IconShield size={24} color="#00889a" />
-                </div>                
-                <p>Admin</p>
+              <div className="select-demo-options-side">
+                {demoOptions.map((demo) => (
+                  <button
+                    key={demo.id}
+                    disabled={demo.disabled}
+                    data-label={demo.label} 
+                    onClick={() => {
+                      if (demo.id !== "soon") {
+                        setActiveDemo(demo.id);
+                      }
+                    }}
+                    className={activeDemo === demo.id ? "active-demo" : ""}
+                  >
+                    <span className="demo-btn-icon">{demo.icon}</span>
+                  </button>
+                ))}
               </div>
-              {/* <button className="demo-box-in-toggle-bg-admin">
-                <Shield size={24} color="#00889a" />
-                <p>Admin</p>
-              </button> */}
-            </div>
-
-            
+            </div> 
           </div>
         </div> {/* demo-box-in */}
       </div> {/* demo-box */}

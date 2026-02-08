@@ -1,6 +1,6 @@
 import { X, CircleCheck } from "lucide-react";
 import Image from "next/image";
-import greenCheckMark from "../../../../../../../../public/_assets/icons/green-check-mark.png"
+import greenCheckMark from "../../../../../../../../../public/_assets/icons/green-check-mark.png"
 
 interface ConfirmationModalProps {
     name: string;

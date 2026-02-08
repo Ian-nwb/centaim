@@ -1,0 +1,62 @@
+/* Mobile: <=768px */
+@media (max-width: 768px) {
+
+  .inventory-content {
+    flex-direction: column;
+    row-gap: 2vh;
+    height: auto;
+  }
+
+  .inventory-content-left,
+  .inventory-content-mid,
+  .inventory-content-right {
+    width: 100%;
+    height: auto;
+  }
+
+  .inventory-left-availableStock,
+  .inventory-left-lowStock,
+  .inventory-mid-overview,
+  .inventory-content-right {
+    padding: 2vh;
+  }
+
+  .overview-data-all,
+  .availableStock-data-all,
+  .lowStock-data-all {
+    font-size: var(--font-size-16);
+  }
+
+  .demo-icons {
+    width: 2.5vh;
+    height: 2.5vh;
+  }
+
+}
+
+/* Medium screens: 768px - 1350px */
+@media (min-width: 768px) and (max-width: 1350px) {
+  .inventory-content-left,
+  .inventory-content-mid,
+  .inventory-content-right {
+    width: 100%;
+  }
+
+  .inventory-left-availableStock,
+  .inventory-left-lowStock,
+  .inventory-mid-overview,
+  .inventory-content-right {
+    padding: 3vh 3vh;
+  }
+
+  .overview-data-all,
+  .availableStock-data-all,
+  .lowStock-data-all {
+    font-size: var(--font-size-18);
+  }
+
+  .demo-icons {
+    width: 3vh;
+    height: 3vh;
+  }
+}

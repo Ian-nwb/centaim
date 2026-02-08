@@ -46,7 +46,7 @@
 
   .demo-box-in {
     display: flex;
-    flex-direction: column;
+    flex-direction: column-reverse;
     flex: 1;
     width: 100%;
     gap: 2vh;
@@ -110,6 +110,12 @@
     color: var(--black-color);
     border: 2px solid var(--primary-color-opacity-15);
   }
+
+  .select-demo-options-side {
+    flex-direction: row;
+    margin: 0;
+    width: 100%;
+  }
 }
 
 
@@ -137,7 +143,7 @@
   }
 
   .demo-box-in-toggle-bg {
-    height: 11vh;
+    height: 100%;
   }
 
   .demo-box-in-toggle-bg-user {

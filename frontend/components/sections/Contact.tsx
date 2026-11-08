@@ -49,12 +49,21 @@ export function Contact({ sent }: { sent?: "ok" }) {
     const form = event.currentTarget;
     setStatus("sending");
     try {
+      // Sent as JSON, not as the FormData multipart body, because that is
+      // what @formspree/react posts — the integration this form was
+      // created for and is known to have delivered under. Formspree
+      // accepts both, but there is no reason to hand it a shape its own
+      // client never sends.
+      const payload = Object.fromEntries(new FormData(form).entries());
       const response = await fetch(FORMSPREE_ENDPOINT, {
         method: "POST",
-        body: new FormData(form),
-        // Without this Formspree answers with a redirect to its own
-        // thank-you page instead of JSON.
-        headers: { Accept: "application/json" },
+        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type": "application/json",
+          // Without this Formspree answers with a redirect to its own
+          // thank-you page instead of JSON.
+          Accept: "application/json",
+        },
       });
       if (!response.ok) throw new Error(`Formspree returned ${response.status}`);
       form.reset();

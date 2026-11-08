@@ -354,18 +354,47 @@ function ringIndexAt(p: number): number {
 }
 
 /** Extra copy windows that are not whole beats. */
+/*
+  The opening handoff, in p.
+
+  The hero beat is 100vh of scroll, and the copy used to hold for almost
+  all of it — clearing at 1.08 screens, so one full scroll left the same
+  headline still sitting there and you had to scroll again to be rid of
+  it. The hero is also the one beat nobody needs time to read: it is the
+  first thing on screen, read before the first scroll.
+
+  So the copy now clears inside the first two thirds of a screen, and the
+  throw copy is pulled forward to meet it. The two windows overlap on
+  purpose — that overlap is a crossfade, and without it there is a third
+  of a screen of board with no words on it.
+
+  These are deliberately NOT derived from BEAT_RANGE. The hero beat's
+  length drives the camera and the dart, and those are correct; it is only
+  the copy that outstayed its welcome.
+*/
+const HERO_FADE = { from: 0.05, to: 0.068 };
+const THROW_ARRIVE = { from: 0.06, to: 0.078 };
+
 function opacityFor(p: number, key: string, narrow = false): number {
+  /*
+    `--story-scale` stretches the whole story by 1.35 on phones so there is
+    time to read copy that wraps to more lines. The opening has nothing to
+    catch up on, so for these two beats the stretch only meant more
+    scrolling against the same words. Undo it here, and the handoff lands
+    at the same point on the screen on every device.
+  */
+  const q = narrow ? Math.min(1, p * NARROW_STORY_SCALE) : p;
+
   if (key === "hero") {
-    /*
-      `--story-scale` stretches the whole story by 1.35 on phones so there
-      is time to read copy that wraps to more lines. The hero is the one
-      beat with nothing to catch up on — it is the first thing on screen,
-      already read before the first scroll — so the stretch only meant
-      scrolling a screen and a half while the same headline sat there, and
-      then meeting it again on the way down. Undo the stretch for this beat
-      alone, so the hero clears in about one screen on every device.
-    */
-    return copyOpacityAt(narrow ? Math.min(1, p * NARROW_STORY_SCALE) : p, "hero");
+    return 1 - windowAt(q, HERO_FADE.from, HERO_FADE.to);
+  }
+  if (key === "throw") {
+    // Arrives early as above, but still leaves on its own beat's schedule.
+    const b = BEAT_RANGE.throw;
+    const outAt = b.to - (b.to - b.from) * 0.05;
+    const fade = Math.min(0.022, (b.to - b.from) * 0.18);
+    const arrive = windowAt(q, THROW_ARRIVE.from, THROW_ARRIVE.to);
+    return arrive * (1 - windowAt(p, outAt, outAt + fade));
   }
   if (key === "structure-process") {
     const w = MECHANISM.structurePanel;

@@ -34,7 +34,9 @@ export default async function Page({
       <StageBoundary fallback={<StaticStory />}>
         <StoryStage fallback={<StaticStory />} />
       </StageBoundary>
-      <Contact sent={sent === "1" ? "ok" : sent === "0" ? "error" : undefined} />
+      {/* Formspree sends the visitor back here with ?sent=1 after it has
+          accepted the enquiry — see the form's `_next` field. */}
+      <Contact sent={sent === "1" ? "ok" : undefined} />
       <Footer />
     </main>
   );

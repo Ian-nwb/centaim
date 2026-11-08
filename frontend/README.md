@@ -69,8 +69,25 @@ The Centaim mark exists three times and the three must agree:
 (tab icon), and `MARK` in [three/geometry.ts](three/geometry.ts) (extruded
 for the bullseye). Change one, mirror the other two.
 
-## Before launch
+## The enquiry form
 
-The contact form in [app/actions.ts](app/actions.ts) is a Server Action that
-validates and then **discards** — the honeypot is wired, the sink is not.
-Point it at Resend / Formspree / the CRM before this goes live.
+The form in [components/sections/Contact.tsx](components/sections/Contact.tsx)
+POSTs straight to **Formspree** (form `mqeargpo`, carried over from the
+pre-revamp site), which forwards each enquiry to the Centaim mailbox.
+
+**There is nothing to configure.** No environment variable, no secret, no
+DNS record. A Formspree form ID is an inbox address rather than a
+credential, so it lives in the source. Where submissions are forwarded, and
+the monthly quota, are managed in the Formspree dashboard — if enquiries
+stop arriving, that is the first place to look, not this repo.
+
+It is a plain `<form method="POST">`, so it works with JavaScript off. Two
+hidden fields do the work: `_next` sends the visitor back to
+`/?sent=1#contact` instead of Formspree's own thank-you page (it must be an
+absolute URL, hence `NEXT_PUBLIC_SITE_URL`, which defaults to the production
+origin), and `_gotcha` is the honeypot Formspree drops silently.
+
+There is deliberately no error banner. `required` and `type="email"` are
+enforced by the browser with or without JavaScript, and a Formspree failure
+lands on Formspree's own error page — so a submission that did not go
+through is never shown as sent.

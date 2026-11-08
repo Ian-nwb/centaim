@@ -1,12 +1,29 @@
 import { CONTACT } from "@/content/story";
-import { submitEnquiry } from "@/app/actions";
+
+/**
+ * Formspree takes the enquiry and forwards it to the Centaim mailbox.
+ *
+ * The form ID is public by design — it is an inbox address, not a
+ * credential — so this needs no environment variable and no secret in the
+ * deploy. Submissions and the forwarding address are managed in the
+ * Formspree dashboard, not here.
+ */
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/mqeargpo";
+
+/**
+ * Formspree's `_next` has to be absolute, so it cannot be inferred from the
+ * request. Local dev therefore bounces to production after a submit, which
+ * is the right trade: the alternative is a required env var, and the whole
+ * point of this route is that there isn't one.
+ */
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://centaim.com";
 
 const fieldClass =
   "w-full rounded-lg border border-gunmetal-rim/60 bg-void-lift px-4 py-3.5 text-[15px] text-paper " +
   "placeholder:text-faint/70 transition-colors hover:border-gunmetal-rim " +
   "focus:border-aim focus:outline-none focus-visible:outline-none";
 
-export function Contact({ sent }: { sent?: "ok" | "error" }) {
+export function Contact({ sent }: { sent?: "ok" }) {
   return (
     <section
       id="contact"
@@ -52,20 +69,30 @@ export function Contact({ sent }: { sent?: "ok" | "error" }) {
               Landed. We&apos;ll come back to you within one business day.
             </p>
           )}
-          {sent === "error" && (
-            <p
-              role="alert"
-              className="mb-8 rounded-lg border border-gunmetal-rim bg-void-lift px-5 py-4 text-[15px] text-muted"
-            >
-              That didn&apos;t go through — check the name, email and message fields.
-            </p>
-          )}
+          {/*
+            There is no error banner. The browser enforces `required` and
+            `type="email"` natively, with or without JavaScript, and a
+            Formspree failure lands on Formspree's own error page — so a
+            failed submit is never dressed up as a success here.
+          */}
 
-          <form action={submitEnquiry} className="flex flex-col gap-6" noValidate={false}>
-            {/* Honeypot: hidden from people, irresistible to bots. */}
+          <form
+            action={FORMSPREE_ENDPOINT}
+            method="POST"
+            className="flex flex-col gap-6"
+          >
+            {/* Come back to our own page rather than Formspree's thank-you
+                screen. Formspree requires this to be an absolute URL. */}
+            <input type="hidden" name="_next" value={`${SITE_URL}/?sent=1#contact`} />
+            {/* Subject line in the forwarded mail. */}
+            <input type="hidden" name="_subject" value="New enquiry — centaim.com" />
+
+            {/* Honeypot: hidden from people, irresistible to bots. `_gotcha`
+                is Formspree's own convention — anything that fills it is
+                dropped on their side, silently, so the bot learns nothing. */}
             <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
-              <label htmlFor="company">Company</label>
-              <input id="company" name="company" type="text" tabIndex={-1} autoComplete="off" />
+              <label htmlFor="_gotcha">Company</label>
+              <input id="_gotcha" name="_gotcha" type="text" tabIndex={-1} autoComplete="off" />
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2">

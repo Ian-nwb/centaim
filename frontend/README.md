@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Centaim — frontend
 
-## Getting Started
+The Centaim marketing site: a single scroll story ("One Throw") that flies a
+dart through the rings of a board in WebGL, with a static page underneath it
+that says the same thing without a canvas.
 
-First, run the development server:
+Next.js 16 (App Router, Turbopack) · React 19 · Tailwind CSS 4 ·
+react-three-fiber / three.
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Script              | Does                                      |
+| ------------------- | ----------------------------------------- |
+| `npm run dev`       | Dev server                                |
+| `npm run build`     | Production build                          |
+| `npm start`         | Serve the production build                |
+| `npm run lint`      | ESLint (`next lint` is gone in Next 16)   |
+| `npm run typecheck` | `tsc --noEmit`                            |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Routes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Route      | What                                                      |
+| ---------- | --------------------------------------------------------- |
+| `/`        | The scroll story, the contact form, the footer            |
+| `/about`   | Static read: what we are, what we offer, credentials      |
+| `/sandbox` | Dev-only canvas inspection route, no copy                 |
 
-## Learn More
+`/landing` and `/home` from the pre-revamp site 308 to `/` — see
+[next.config.ts](next.config.ts).
 
-To learn more about Next.js, take a look at the following resources:
+## How it fits together
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+content/     copy, as data. The only place copy is edited.
+storyboard/  pacing and 3D world coordinates. The numbers.
+three/       the canvas: board, dart, trail, lights, materials.
+components/  the DOM: sections, nav, contact CTA, the mark.
+app/         routes, the server action behind the form, globals.css.
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Four rules hold this together:
 
-## Deploy on Vercel
+1. **Copy lives in `content/`.** `story.ts` for the landing beats,
+   `about.ts` for the about page. Sections read it; the canvas keys off the
+   same `id` values. Nothing hardcodes a sentence.
+2. **Pacing lives in `storyboard/`.** One scroll progress value `p` in
+   `[0,1]` drives everything — `timeline.ts` owns the beat lengths,
+   `world.ts` owns the 3D coordinates. Nothing in `three/` listens to
+   scroll; it reads `p`. Don't re-declare a number that lives here.
+3. **The static page is the real page.** `app/page.tsx` renders the full
+   static story on the server. `StoryStage` only replaces it once the
+   client has proved it can run the scene — WebGL probe, core count,
+   `prefers-reduced-motion`. So the server HTML, the no-JS render, the
+   reduced-motion render and a GPU failure all land on a complete page
+   instead of a blank one. `StageBoundary` catches anything that still
+   throws and falls back to the same static page.
+4. **One accent per section.** Cyan is energy and appears once per beat;
+   gunmetal is every structural surface; `--color-void` is a tint, not pure
+   black, because the 3D layer needs the depth. Tokens are in
+   [app/globals.css](app/globals.css).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The Centaim mark exists three times and the three must agree:
+[components/Mark.tsx](components/Mark.tsx) (UI), [app/icon.svg](app/icon.svg)
+(tab icon), and `MARK` in [three/geometry.ts](three/geometry.ts) (extruded
+for the bullseye). Change one, mirror the other two.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Before launch
+
+The contact form in [app/actions.ts](app/actions.ts) is a Server Action that
+validates and then **discards** — the honeypot is wired, the sink is not.
+Point it at Resend / Formspree / the CRM before this goes live.

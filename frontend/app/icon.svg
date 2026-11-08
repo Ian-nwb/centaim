@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Tab icon: the Centaim mark on the site's own void black.
+
+  Same path data and proportions as components/Mark.tsx — if the mark
+  changes there, mirror it here (and in three/geometry.ts, which extrudes
+  the same shape for the bullseye).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-116 -116 232 232" width="232" height="232">
+  <rect x="-116" y="-116" width="232" height="232" rx="52" fill="#000000" />
+  <g fill="none">
+    <path
+      d="M 19.96 -80.05 A 82.5 82.5 0 1 0 72.84 38.72"
+      stroke="#17b4cf"
+      stroke-width="35"
+      stroke-linecap="round"
+    />
+    <path
+      d="M 14.91 21.30
+         C 16.85 -5.22, 34.95 -18.42, 57.92 -14.92
+         L 33.82 -49.32
+         C 29.27 -26.53, 10.67 -14.06, -14.91 -21.30 Z"
+      fill="#17b4cf"
+    />
+    <circle cx="0" cy="0" r="26" fill="#17b4cf" />
+    <circle cx="45.87" cy="-32.12" r="21" fill="#17b4cf" />
+  </g>
+</svg>

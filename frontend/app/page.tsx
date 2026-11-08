@@ -34,8 +34,9 @@ export default async function Page({
       <StageBoundary fallback={<StaticStory />}>
         <StoryStage fallback={<StaticStory />} />
       </StageBoundary>
-      {/* Formspree sends the visitor back here with ?sent=1 after it has
-          accepted the enquiry — see the form's `_next` field. */}
+      {/* Nothing routes here with ?sent=1 today — the form confirms in
+          place over fetch. Kept so the success state can be linked or
+          restored if the submit path ever goes back to a redirect. */}
       <Contact sent={sent === "1" ? "ok" : undefined} />
       <Footer />
     </main>

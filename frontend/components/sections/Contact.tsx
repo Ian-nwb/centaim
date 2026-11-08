@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useForm } from "@formspree/react";
 import { CONTACT } from "@/content/story";
 
 /**
@@ -11,26 +11,25 @@ import { CONTACT } from "@/content/story";
  * deploy. Submissions and the forwarding address are managed in the
  * Formspree dashboard, not here.
  */
-const FORMSPREE_ENDPOINT = "https://formspree.io/f/mqeargpo";
+const FORMSPREE_FORM_ID = "mqeargpo";
+const FORMSPREE_ENDPOINT = `https://formspree.io/f/${FORMSPREE_FORM_ID}`;
 
 /**
- * Submitted over fetch rather than as a browser navigation.
+ * Submitted through Formspree's own client.
  *
- * A plain POST hands the page to Formspree, which on the free plan always
- * lands on its own "Thanks! The form was submitted successfully" screen —
- * a custom redirect, including the `_next` field, is a paid feature, so a
- * free-plan form cannot come back to us that way. An AJAX submit never
- * leaves the page at all, so the visitor stays on centaim.com and gets the
- * site's own confirmation. This is why the pre-revamp site used
- * @formspree/react; this is the same mechanism without the dependency.
+ * Read the note on `_subject` below before touching the hidden fields —
+ * the form spent a while accepting enquiries and delivering none, and the
+ * cause is not something the response body will ever tell you.
  *
- * `action` and `method` are still set on the form, so with JavaScript off
- * it degrades to the plain POST and the enquiry is still delivered — the
- * visitor just sees Formspree's page instead of ours.
+ * `useForm` is the integration this form was created for and the one the
+ * pre-revamp site used, so it owns the request rather than a hand-rolled
+ * fetch. Both were measured delivering; this one is simply the client
+ * Formspree maintains, so protocol changes are their problem.
+ *
+ * It is AJAX, so the visitor never leaves the page and never sees
+ * Formspree's "Thanks!" screen. `action` and `method` stay on the form for
+ * the no-JS fallback.
  */
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://centaim.com";
-
-type Status = "idle" | "sending" | "ok" | "error";
 
 const fieldClass =
   "w-full rounded-lg border border-gunmetal-rim/60 bg-void-lift px-4 py-3.5 text-[15px] text-paper " +
@@ -38,61 +37,16 @@ const fieldClass =
   "focus:border-aim focus:outline-none focus-visible:outline-none";
 
 export function Contact({ sent }: { sent?: "ok" }) {
-  // `sent` is the no-JS path coming back with ?sent=1; everything after
-  // that is driven by the fetch below.
-  const [status, setStatus] = useState<Status>(sent === "ok" ? "ok" : "idle");
+  const [state, handleSubmit] = useForm(FORMSPREE_FORM_ID);
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    // Only take over once we know fetch can do the job. If anything here
-    // throws before this point the browser does the normal POST instead.
-    event.preventDefault();
-    const form = event.currentTarget;
-    setStatus("sending");
-    try {
-      // Sent as JSON, not as the FormData multipart body, because that is
-      // what @formspree/react posts — the integration this form was
-      // created for and is known to have delivered under. Formspree
-      // accepts both, but there is no reason to hand it a shape its own
-      // client never sends.
-      const payload = Object.fromEntries(new FormData(form).entries());
-
-      /*
-        The honeypot is decided here and never sent.
-
-        Formspree answers a filled `_gotcha` with exactly the same
-        {"ok":true} as a real submission, then discards it — so if anything
-        ever puts a value in that box, a genuine enquiry disappears and the
-        visitor is told it landed. The box is now display:none so autofill
-        will not reach it, but the field is stripped regardless: there is
-        no version of this where a hidden input gets to silently throw away
-        a lead. Spam is a nuisance; a lost client is not.
-      */
-      const trapped = String(payload._gotcha ?? "").trim() !== "";
-      delete payload._gotcha;
-      if (trapped) {
-        // A bot. Show the same success it would have got from Formspree,
-        // so it learns nothing, and send nothing.
-        form.reset();
-        setStatus("ok");
-        return;
-      }
-      const response = await fetch(FORMSPREE_ENDPOINT, {
-        method: "POST",
-        body: JSON.stringify(payload),
-        headers: {
-          "Content-Type": "application/json",
-          // Without this Formspree answers with a redirect to its own
-          // thank-you page instead of JSON.
-          Accept: "application/json",
-        },
-      });
-      if (!response.ok) throw new Error(`Formspree returned ${response.status}`);
-      form.reset();
-      setStatus("ok");
-    } catch {
-      setStatus("error");
-    }
-  }
+  // `sent` is the no-JS fallback coming back with ?sent=1.
+  const status: "idle" | "sending" | "ok" | "error" = state.submitting
+    ? "sending"
+    : state.succeeded || sent === "ok"
+      ? "ok"
+      : state.errors
+        ? "error"
+        : "idle";
 
   return (
     <section
@@ -161,39 +115,35 @@ export function Contact({ sent }: { sent?: "ok" }) {
           <form
             action={FORMSPREE_ENDPOINT}
             method="POST"
-            onSubmit={onSubmit}
+            onSubmit={handleSubmit}
             className="flex flex-col gap-6"
           >
-            {/* Come back to our own page rather than Formspree's thank-you
-                screen. Formspree requires this to be an absolute URL. */}
-            <input type="hidden" name="_next" value={`${SITE_URL}/?sent=1#contact`} />
-            {/* Subject line in the forwarded mail. */}
-            <input type="hidden" name="_subject" value="New enquiry — centaim.com" />
-
             {/*
-              Honeypot: hidden from people, irresistible to bots.
+              Only `_subject`. Do not add `_next`, and do not add `_gotcha`.
 
-              `display:none`, NOT the usual trick of parking it off-screen
-              at -9999px, and with no <label>. An off-screen field is still
-              a real field to Chrome's autofill, and a label reading
-              "Company" is exactly what its heuristics match to
-              "organization" — `autocomplete="off"` does not stop it. So
-              the browser was quietly filling this box with the visitor's
-              own company, and Formspree answers a filled honeypot with the
-              same {"ok":true} as a real submission and bins it. The form
-              said "Landed." and nothing ever arrived. A honeypot that
-              catches humans is worse than no honeypot at all.
+              `_next` sets a custom redirect, which is a paid feature. On a
+              free form it does not simply get ignored — when a REAL BROWSER
+              sends it, the submission is accepted, answered {"ok":true},
+              and no notification email is ever sent. It cost this site
+              every enquiry it received until it was found. Measured, nine
+              submissions, one variable at a time:
+
+                            _next sent    no _next
+                curl           sent         sent
+                browser      DROPPED        sent
+
+              Either condition alone is harmless, which is what made it so
+              hard to see: the same field tests clean from a script, and the
+              response body is identical in all four cases.
+
+              `_gotcha` is Formspree's honeypot, left out for a related
+              reason. A filled honeypot is also answered {"ok":true} and
+              then binned, and Chrome's autofill does reach hidden fields —
+              it was filling the previous off-screen one. Formspree's own
+              spam filtering runs on every plan. Spam is a nuisance; a lead
+              that vanishes without a trace is not.
             */}
-            <div hidden>
-              <input
-                id="centaim-hp"
-                name="_gotcha"
-                type="text"
-                tabIndex={-1}
-                autoComplete="off"
-                aria-hidden
-              />
-            </div>
+            <input type="hidden" name="_subject" value="New enquiry — centaim.com" />
 
             <div className="grid gap-6 sm:grid-cols-2">
               {CONTACT.fields.map((field) => (

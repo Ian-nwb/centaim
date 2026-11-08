@@ -89,19 +89,38 @@ credential, so it lives in the source. Where submissions are forwarded, and
 the monthly quota, are managed in the Formspree dashboard — if enquiries
 stop arriving, that is the first place to look, not this repo.
 
-**The submit goes over `fetch`, and that is not incidental.** A plain POST
-hands the page to Formspree, and a free-plan form always finishes on
-Formspree's own "Thanks!" screen — a custom redirect, `_next` included, is
-a paid feature, so a free form cannot be told to come back. An AJAX submit
-(POST with `Accept: application/json`) never leaves the page, so the
-visitor stays on centaim.com and sees the site's own confirmation. The
-pre-revamp site got this for free from `@formspree/react`; this is the same
-mechanism, hand-rolled, without the dependency.
+It submits over AJAX through `@formspree/react`, so the visitor never
+leaves the page and never sees Formspree's "Thanks!" screen. `action` and
+`method` stay on the form, so with JavaScript off it degrades to a plain
+POST — the enquiry still arrives, the visitor just lands on Formspree's
+page.
 
-`action` and `method` are still on the form, so with JavaScript off it
-degrades to the plain POST: the enquiry still arrives, the visitor just
-sees Formspree's page. `_next` is kept for that path and for the day the
-plan changes; `_gotcha` is the honeypot Formspree drops silently.
+### Never add `_next` to this form
+
+It is the custom-redirect field, and a custom redirect is a paid feature.
+On a free form it is not politely ignored. When a **real browser** sends
+it, Formspree accepts the submission, answers `{"ok":true}`, and sends no
+notification email. The site reports success and the enquiry is gone.
+
+Nine submissions, one variable at a time:
+
+|             | `_next` sent | no `_next` |
+| ----------- | ------------ | ---------- |
+| **curl**    | delivered    | delivered  |
+| **browser** | **DROPPED**  | delivered  |
+
+Either condition alone is harmless, which is what made it expensive to
+find — the field tests clean from a script, and the response body is
+byte-identical in all four cases.
+
+`_gotcha`, Formspree's honeypot, is left out for a related reason: a
+filled honeypot is also answered `{"ok":true}` and then binned, and
+Chrome's autofill reaches hidden fields. Formspree's own spam filtering
+runs on every plan.
+
+**The general rule:** Formspree's response cannot distinguish a delivered
+enquiry from a discarded one. Anything added to this form has to be tested
+by submitting it from a browser and checking the mailbox.
 
 The success and failure banners are driven by the fetch result, so a
 submission that did not go through is never shown as sent.

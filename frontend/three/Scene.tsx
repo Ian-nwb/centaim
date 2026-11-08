@@ -10,7 +10,7 @@ import { DartRig } from "./DartRig";
 import { DartTrail } from "./DartTrail";
 import { DotField } from "./DotField";
 import { Lighting } from "./Lighting";
-import type { StageState } from "./state";
+import { dprFor, type StageState } from "./state";
 
 /**
  * Reads the scroll position, writes the scene pose, moves the camera.
@@ -86,8 +86,18 @@ export function Scene({
       // No object in this scene is clickable; skip hit-testing entirely.
       events={undefined}
       style={{ pointerEvents: "none" }}
-      dpr={[1, 2]}
-      gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
+      dpr={dprFor(state.quality)}
+      gl={{
+        // MSAA is a per-pixel cost on a scene that is already fill-bound.
+        // The top tier keeps it; below that the ring edges are softened by
+        // the glow anyway, so it buys very little for what it costs.
+        antialias: state.quality === "high",
+        alpha: false,
+        // A phone's "high-performance" GPU is the only GPU it has, and
+        // asking for it on a low tier only keeps the discrete card awake
+        // on laptops that would rather use the integrated one.
+        powerPreference: state.quality === "low" ? "default" : "high-performance",
+      }}
       camera={{
         fov: CAMERA.fov,
         near: CAMERA.near,

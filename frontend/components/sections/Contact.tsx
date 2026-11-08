@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { CONTACT } from "@/content/story";
 
 /**
@@ -11,12 +14,23 @@ import { CONTACT } from "@/content/story";
 const FORMSPREE_ENDPOINT = "https://formspree.io/f/mqeargpo";
 
 /**
- * Formspree's `_next` has to be absolute, so it cannot be inferred from the
- * request. Local dev therefore bounces to production after a submit, which
- * is the right trade: the alternative is a required env var, and the whole
- * point of this route is that there isn't one.
+ * Submitted over fetch rather than as a browser navigation.
+ *
+ * A plain POST hands the page to Formspree, which on the free plan always
+ * lands on its own "Thanks! The form was submitted successfully" screen —
+ * a custom redirect, including the `_next` field, is a paid feature, so a
+ * free-plan form cannot come back to us that way. An AJAX submit never
+ * leaves the page at all, so the visitor stays on centaim.com and gets the
+ * site's own confirmation. This is why the pre-revamp site used
+ * @formspree/react; this is the same mechanism without the dependency.
+ *
+ * `action` and `method` are still set on the form, so with JavaScript off
+ * it degrades to the plain POST and the enquiry is still delivered — the
+ * visitor just sees Formspree's page instead of ours.
  */
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://centaim.com";
+
+type Status = "idle" | "sending" | "ok" | "error";
 
 const fieldClass =
   "w-full rounded-lg border border-gunmetal-rim/60 bg-void-lift px-4 py-3.5 text-[15px] text-paper " +
@@ -24,6 +38,32 @@ const fieldClass =
   "focus:border-aim focus:outline-none focus-visible:outline-none";
 
 export function Contact({ sent }: { sent?: "ok" }) {
+  // `sent` is the no-JS path coming back with ?sent=1; everything after
+  // that is driven by the fetch below.
+  const [status, setStatus] = useState<Status>(sent === "ok" ? "ok" : "idle");
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    // Only take over once we know fetch can do the job. If anything here
+    // throws before this point the browser does the normal POST instead.
+    event.preventDefault();
+    const form = event.currentTarget;
+    setStatus("sending");
+    try {
+      const response = await fetch(FORMSPREE_ENDPOINT, {
+        method: "POST",
+        body: new FormData(form),
+        // Without this Formspree answers with a redirect to its own
+        // thank-you page instead of JSON.
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) throw new Error(`Formspree returned ${response.status}`);
+      form.reset();
+      setStatus("ok");
+    } catch {
+      setStatus("error");
+    }
+  }
+
   return (
     <section
       id="contact"
@@ -61,7 +101,7 @@ export function Contact({ sent }: { sent?: "ok" }) {
         </div>
 
         <div>
-          {sent === "ok" && (
+          {status === "ok" && (
             <p
               role="status"
               className="mb-8 rounded-lg border border-aim/50 bg-aim/10 px-5 py-4 text-[15px] text-aim-live"
@@ -69,16 +109,29 @@ export function Contact({ sent }: { sent?: "ok" }) {
               Landed. We&apos;ll come back to you within one business day.
             </p>
           )}
-          {/*
-            There is no error banner. The browser enforces `required` and
-            `type="email"` natively, with or without JavaScript, and a
-            Formspree failure lands on Formspree's own error page — so a
-            failed submit is never dressed up as a success here.
-          */}
+          {status === "error" && (
+            // Only shown when the submit genuinely failed, so it never
+            // dresses a failure up as a success. Re-sending rarely helps,
+            // so it hands over the direct route as well.
+            <p
+              role="alert"
+              className="mb-8 rounded-lg border border-cta/60 bg-cta/10 px-5 py-4 text-[15px] text-paper"
+            >
+              That didn&apos;t send. Please try again, or reach us directly at{" "}
+              <a
+                href={CONTACT.email.href}
+                className="underline underline-offset-4 transition-colors hover:text-aim-live"
+              >
+                {CONTACT.email.display}
+              </a>
+              .
+            </p>
+          )}
 
           <form
             action={FORMSPREE_ENDPOINT}
             method="POST"
+            onSubmit={onSubmit}
             className="flex flex-col gap-6"
           >
             {/* Come back to our own page rather than Formspree's thank-you
@@ -140,9 +193,10 @@ export function Contact({ sent }: { sent?: "ok" }) {
 
             <button
               type="submit"
-              className="w-fit rounded-full bg-aim px-8 py-3.5 text-sm font-medium text-white transition-colors hover:bg-aim-mid"
+              disabled={status === "sending"}
+              className="w-fit rounded-full bg-aim px-8 py-3.5 text-sm font-medium text-white transition-colors hover:bg-aim-mid disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {CONTACT.submit}
+              {status === "sending" ? "Sending…" : CONTACT.submit}
             </button>
           </form>
         </div>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   BEAT_RANGE,
   MECHANISM,
+  NARROW_STORY_SCALE,
   TOTAL_VH,
   copyOpacityAt,
   windowAt,
@@ -26,7 +27,7 @@ import { BeatNav } from "@/components/BeatNav";
 import { ContactCta } from "@/components/ContactCta";
 import { Mark } from "@/components/Mark";
 import { Scene } from "@/three/Scene";
-import { createStageState } from "@/three/state";
+import { createStageState, pickQuality } from "@/three/state";
 
 /**
  * The scroll story.
@@ -66,8 +67,13 @@ export function StoryStage({ fallback }: { fallback: ReactNode }) {
     // that stutters is worse than no scroll story at all.
     if ((navigator.hardwareConcurrency ?? 8) < 4) return;
 
+    // Pick the tier before the canvas exists: both the geometry and the
+    // renderer's pixel ratio are decided at mount, and neither is worth
+    // rebuilding afterwards.
+    state.quality = pickQuality();
+
     setEnabled(true);
-  }, []);
+  }, [state]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -349,6 +355,18 @@ function ringIndexAt(p: number): number {
 
 /** Extra copy windows that are not whole beats. */
 function opacityFor(p: number, key: string, narrow = false): number {
+  if (key === "hero") {
+    /*
+      `--story-scale` stretches the whole story by 1.35 on phones so there
+      is time to read copy that wraps to more lines. The hero is the one
+      beat with nothing to catch up on — it is the first thing on screen,
+      already read before the first scroll — so the stretch only meant
+      scrolling a screen and a half while the same headline sat there, and
+      then meeting it again on the way down. Undo the stretch for this beat
+      alone, so the hero clears in about one screen on every device.
+    */
+    return copyOpacityAt(narrow ? Math.min(1, p * NARROW_STORY_SCALE) : p, "hero");
+  }
   if (key === "structure-process") {
     const w = MECHANISM.structurePanel;
     const t = windowAt(p, w.from, w.to);

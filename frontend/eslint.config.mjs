@@ -54,6 +54,10 @@ const eslintConfig = defineConfig([
     rules: {
       "react-hooks/set-state-in-effect": "off",
       "react-hooks/refs": "off",
+      // StoryStage also sets the quality tier on StageState at mount.
+      // StageState is the scene's shared mutable object by design — see
+      // three/state.ts — and is never read through React.
+      "react-hooks/immutability": "off",
     },
   },
 ]);

@@ -363,6 +363,13 @@ export function copyOpacityAt(p: number, beat: BeatId): number {
   return windowAt(p, inAt, inAt + fade);
 }
 
+/**
+ * Mirrors `--story-scale` for narrow viewports in app/globals.css. Keep
+ * the two in step: the CSS stretches the scroll, this is how the timeline
+ * knows by how much.
+ */
+export const NARROW_STORY_SCALE = 1.35;
+
 export const QUALITY = {
   high: { ringSegments: 256, tubeSegments: 128, bloom: true, fringe: true },
   mid: { ringSegments: 160, tubeSegments: 72, bloom: true, fringe: false },

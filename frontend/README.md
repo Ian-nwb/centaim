@@ -40,10 +40,10 @@ content/     copy, as data. The only place copy is edited.
 storyboard/  pacing and 3D world coordinates. The numbers.
 three/       the canvas: board, dart, trail, lights, materials.
 components/  the DOM: sections, nav, contact CTA, the mark.
-app/         routes, the server action behind the form, globals.css.
+app/         routes and globals.css.
 ```
 
-Four rules hold this together:
+Five rules hold this together:
 
 1. **Copy lives in `content/`.** `story.ts` for the landing beats,
    `about.ts` for the about page. Sections read it; the canvas keys off the
@@ -59,7 +59,15 @@ Four rules hold this together:
    reduced-motion render and a GPU failure all land on a complete page
    instead of a blank one. `StageBoundary` catches anything that still
    throws and falls back to the same static page.
-4. **One accent per section.** Cyan is energy and appears once per beat;
+4. **The device picks the quality tier, once, at mount.** `pickQuality()`
+   in [three/state.ts](three/state.ts) chooses `low` / `mid` / `high` from
+   pointer type, viewport, cores and memory; `QUALITY` in `timeline.ts`
+   turns that into ring and tube segment counts, bloom and fringe, and
+   `dprFor()` turns it into a pixel ratio under a fixed framebuffer budget.
+   Adding scene cost means adding it to a tier, not to every device —
+   everything here was once hardcoded to `high`, and that alone was the
+   mobile performance problem.
+5. **One accent per section.** Cyan is energy and appears once per beat;
    gunmetal is every structural surface; `--color-void` is a tint, not pure
    black, because the 3D layer needs the depth. Tokens are in
    [app/globals.css](app/globals.css).
@@ -81,13 +89,19 @@ credential, so it lives in the source. Where submissions are forwarded, and
 the monthly quota, are managed in the Formspree dashboard — if enquiries
 stop arriving, that is the first place to look, not this repo.
 
-It is a plain `<form method="POST">`, so it works with JavaScript off. Two
-hidden fields do the work: `_next` sends the visitor back to
-`/?sent=1#contact` instead of Formspree's own thank-you page (it must be an
-absolute URL, hence `NEXT_PUBLIC_SITE_URL`, which defaults to the production
-origin), and `_gotcha` is the honeypot Formspree drops silently.
+**The submit goes over `fetch`, and that is not incidental.** A plain POST
+hands the page to Formspree, and a free-plan form always finishes on
+Formspree's own "Thanks!" screen — a custom redirect, `_next` included, is
+a paid feature, so a free form cannot be told to come back. An AJAX submit
+(POST with `Accept: application/json`) never leaves the page, so the
+visitor stays on centaim.com and sees the site's own confirmation. The
+pre-revamp site got this for free from `@formspree/react`; this is the same
+mechanism, hand-rolled, without the dependency.
 
-There is deliberately no error banner. `required` and `type="email"` are
-enforced by the browser with or without JavaScript, and a Formspree failure
-lands on Formspree's own error page — so a submission that did not go
-through is never shown as sent.
+`action` and `method` are still on the form, so with JavaScript off it
+degrades to the plain POST: the enquiry still arrives, the visitor just
+sees Formspree's page. `_next` is kept for that path and for the day the
+plan changes; `_gotcha` is the honeypot Formspree drops silently.
+
+The success and failure banners are driven by the fetch result, so a
+submission that did not go through is never shown as sent.

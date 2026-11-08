@@ -55,6 +55,27 @@ export function Contact({ sent }: { sent?: "ok" }) {
       // accepts both, but there is no reason to hand it a shape its own
       // client never sends.
       const payload = Object.fromEntries(new FormData(form).entries());
+
+      /*
+        The honeypot is decided here and never sent.
+
+        Formspree answers a filled `_gotcha` with exactly the same
+        {"ok":true} as a real submission, then discards it — so if anything
+        ever puts a value in that box, a genuine enquiry disappears and the
+        visitor is told it landed. The box is now display:none so autofill
+        will not reach it, but the field is stripped regardless: there is
+        no version of this where a hidden input gets to silently throw away
+        a lead. Spam is a nuisance; a lost client is not.
+      */
+      const trapped = String(payload._gotcha ?? "").trim() !== "";
+      delete payload._gotcha;
+      if (trapped) {
+        // A bot. Show the same success it would have got from Formspree,
+        // so it learns nothing, and send nothing.
+        form.reset();
+        setStatus("ok");
+        return;
+      }
       const response = await fetch(FORMSPREE_ENDPOINT, {
         method: "POST",
         body: JSON.stringify(payload),
@@ -149,12 +170,29 @@ export function Contact({ sent }: { sent?: "ok" }) {
             {/* Subject line in the forwarded mail. */}
             <input type="hidden" name="_subject" value="New enquiry — centaim.com" />
 
-            {/* Honeypot: hidden from people, irresistible to bots. `_gotcha`
-                is Formspree's own convention — anything that fills it is
-                dropped on their side, silently, so the bot learns nothing. */}
-            <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
-              <label htmlFor="_gotcha">Company</label>
-              <input id="_gotcha" name="_gotcha" type="text" tabIndex={-1} autoComplete="off" />
+            {/*
+              Honeypot: hidden from people, irresistible to bots.
+
+              `display:none`, NOT the usual trick of parking it off-screen
+              at -9999px, and with no <label>. An off-screen field is still
+              a real field to Chrome's autofill, and a label reading
+              "Company" is exactly what its heuristics match to
+              "organization" — `autocomplete="off"` does not stop it. So
+              the browser was quietly filling this box with the visitor's
+              own company, and Formspree answers a filled honeypot with the
+              same {"ok":true} as a real submission and bins it. The form
+              said "Landed." and nothing ever arrived. A honeypot that
+              catches humans is worse than no honeypot at all.
+            */}
+            <div hidden>
+              <input
+                id="centaim-hp"
+                name="_gotcha"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden
+              />
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2">

@@ -35,18 +35,6 @@ export function Footer() {
                 Demo
               </Link>
             </li>
-            {RING_BEATS.map((beat) => (
-              <li key={beat.id}>
-                {/* On the home page BeatNav turns this into a scroll to that
-                    beat; from any other page it has to navigate home first. */}
-                <Link
-                  href={`/#${beat.id}`}
-                  className="transition-colors hover:text-paper"
-                >
-                  {sentenceCase(beat.headline.replace(/^We aim for /, "").replace(/\.$/, ""))}
-                </Link>
-              </li>
-            ))}
             <li>
               <Link href="/#contact" className="transition-colors hover:text-paper">
                 Contact

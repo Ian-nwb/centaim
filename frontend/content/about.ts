@@ -23,7 +23,7 @@ export const WHAT_WE_ARE = {
   heading: "What we are",
   paragraphs: [
     "A small team of experienced developers, working directly with the people who will use what we build. No account layer between you and the person writing the code.",
-    "We build to a named target. Before anything is written we agree on what the system has to do and how we will know it worked — then we build until it does. That is where the name comes from: center, aim.",
+    "We build to a named target. Before anything is written we agree on what the system has to do and how we will know it worked then we build until it does. That is where the name comes from: center, aim.",
     "AI is part of how we work, not what we sell. It reviews every change alongside a developer, catches what fatigue misses, and removes the slow parts of delivery without removing the careful ones.",
   ],
 };
@@ -54,8 +54,8 @@ export const WHAT_WE_OFFER = {
     {
       title: "On top of both",
       items: [
-        "AI analytics — your own data read back as plain-language trends",
-        "Security — encryption in transit and at rest, role-based access, backups, audit trail",
+        "AI analytics - your own data read back as plain-language trends",
+        "Security - encryption in transit and at rest, role-based access, backups, audit trail",
         "Integrations with the tools you already pay for",
         "Documentation, handover, monitoring and maintenance after launch",
       ],

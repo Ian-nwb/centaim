@@ -78,12 +78,34 @@ export function StoryStage({ fallback }: { fallback: ReactNode }) {
   useEffect(() => {
     if (!enabled) return;
     let raf = 0;
+    /*
+      Caches for the per-frame DOM writes below. Everything here exists
+      because this function runs on every animation frame for the length
+      of a ten-screen scroll, next to a WebGL submit, on the same thread.
+    */
+    // Last gradient string written to the scrim. See the scrim block.
+    let lastScrim = "";
+    // The rail's ticks, queried once instead of on every frame.
+    let ticks: HTMLElement[] = [];
+    // Last ring index the rail was drawn at — it changes six times in all.
+    let lastTick = -2;
+    // Last opacity written per panel, so unchanged panels are left alone.
+    const lastOpacity = new Map<string, number>();
+
+    /*
+      matchMedia() allocates a MediaQueryList and runs a style query. It
+      was being called inside read(), i.e. once per frame, to answer a
+      question that can only change on resize.
+    */
+    const measure = () => {
+      narrow.current = window.matchMedia("(max-width: 767px)").matches;
+    };
+    measure();
 
     const read = () => {
       raf = 0;
       const el = wrap.current;
       if (!el) return;
-      narrow.current = window.matchMedia("(max-width: 767px)").matches;
       const rect = el.getBoundingClientRect();
       const travel = rect.height - window.innerHeight;
       const p = travel > 0 ? Math.min(1, Math.max(0, -rect.top / travel)) : 0;
@@ -96,23 +118,44 @@ export function StoryStage({ fallback }: { fallback: ReactNode }) {
       for (const [key, node] of panels.current) {
         if (key === "scrim" || key === "rail") continue;
         const o = opacityFor(p, key, narrow.current);
+        const side = node.dataset.side ?? "left";
+        if (o > 0.5) occupied.add(side);
+        if (o > lead.o) lead = { side, o };
+
+        /*
+          Only touch the DOM when this panel actually moved. At any scroll
+          position at most two of the fourteen panels are mid-fade; the
+          rest sit pinned at 0 or 1 and were being handed three identical
+          inline-style writes each, every frame, all of which invalidate
+          style for the element whether the value changed or not.
+        */
+        if (lastOpacity.get(key) === o) continue;
+        lastOpacity.set(key, o);
+
         node.style.opacity = String(o);
         // Copy slides in from its own side, so the motion points inward.
-        const side = node.dataset.side ?? "left";
         const dx = side === "right" ? 1 : side === "left" ? -1 : 0;
         node.style.transform = `translate(${(1 - o) * 26 * dx}px, ${(1 - o) * 10}px)`;
         node.style.visibility = o < 0.01 ? "hidden" : "visible";
-        if (o > 0.5) occupied.add(side);
-        if (o > lead.o) lead = { side, o };
       }
       // Both halves in use at once — the fit beat — needs both edges held.
       if (occupied.has("left") && occupied.has("right")) lead = { side: "both", o: 1 };
 
-      // The scrim darkens whichever edge the copy currently occupies.
+      /*
+        The scrim darkens whichever edge the copy currently occupies.
+
+        Guarded on the string. This element is `absolute inset-0`, so it
+        covers the viewport, and assigning a gradient to its background
+        invalidates paint for the whole frame — a full-viewport raster on
+        the main thread, competing with the WebGL submit. The value only
+        changes a handful of times across the entire page (it keys off
+        `lead.side`, not off `p`), but it was being reassigned on every
+        single frame of the scroll.
+      */
       const scrim = panels.current.get("scrim");
       if (scrim) {
         const dir = lead.side === "right" ? "left" : "right";
-        scrim.style.background = narrow.current
+        const next = narrow.current
           ? // Portrait puts the board directly behind the copy with
             // nowhere to push it, so the whole frame is held down.
             lead.side === "lockup"
@@ -128,32 +171,51 @@ export function StoryStage({ fallback }: { fallback: ReactNode }) {
                 : lead.side === "bottom"
                   ? "linear-gradient(to top, #000 2%, rgba(0,0,0,0.6) 24%, transparent 48%)"
               : `linear-gradient(to ${dir}, #000 8%, rgba(0,0,0,0.72) 42%, transparent 72%)`;
+        if (next !== lastScrim) {
+          lastScrim = next;
+          scrim.style.background = next;
+        }
       }
 
-      // Progress rail.
+      // Progress rail. The ticks are a fixed set of six elements, so the
+      // querySelectorAll that used to run here every frame runs once.
       const rail = panels.current.get("rail");
       if (rail) {
         rail.style.setProperty("--rail", String(p));
+        if (!ticks.length) {
+          ticks = Array.from(rail.querySelectorAll<HTMLElement>("[data-tick]"));
+        }
         const idx = ringIndexAt(p);
-        rail.querySelectorAll<HTMLElement>("[data-tick]").forEach((tick, i) => {
-          const on = i <= idx;
-          tick.style.opacity = on ? "1" : "0.28";
-          tick.style.transform = `scaleX(${on ? 1 : 0.45})`;
-        });
+        if (idx !== lastTick) {
+          lastTick = idx;
+          ticks.forEach((tick, i) => {
+            const on = i <= idx;
+            tick.style.opacity = on ? "1" : "0.28";
+            tick.style.transform = `scaleX(${on ? 1 : 0.45})`;
+          });
+        }
       }
     };
 
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(read);
     };
+    const onResize = () => {
+      measure();
+      // Geometry changed, so every cached decision is stale.
+      lastScrim = "";
+      lastTick = -2;
+      lastOpacity.clear();
+      onScroll();
+    };
 
     read();
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
+    window.addEventListener("resize", onResize, { passive: true });
     return () => {
       if (raf) cancelAnimationFrame(raf);
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("resize", onResize);
     };
   }, [enabled]);
 

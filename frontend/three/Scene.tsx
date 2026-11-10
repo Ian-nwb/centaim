@@ -97,6 +97,9 @@ export function Scene({
         // asking for it on a low tier only keeps the discrete card awake
         // on laptops that would rather use the integrated one.
         powerPreference: state.quality === "low" ? "default" : "high-performance",
+        // Nothing here uses the stencil buffer; allocating one costs
+        // bandwidth per tile on mobile for nothing.
+        stencil: false,
       }}
       camera={{
         fov: CAMERA.fov,
@@ -109,8 +112,8 @@ export function Scene({
         gl.toneMappingExposure = 1.05;
       }}
     >
-      <Lighting />
-      <DotField />
+      <Lighting tier={state.quality} />
+      <DotField tier={state.quality} />
       <Board state={state} />
       <DartRig state={state} />
       <DartTrail state={state} />

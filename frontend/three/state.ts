@@ -86,6 +86,14 @@ export function createStageState(
 export function pickQuality(): QualityTier {
   if (typeof window === "undefined") return "low";
 
+  /*
+    Bisect handle, matching DotField's ?nofield: ?q=low | mid | high forces
+    a tier so the same handset can be compared against itself. Without it
+    the only way to test the low tier is to own a slow enough phone.
+  */
+  const forced = new URLSearchParams(window.location.search).get("q");
+  if (forced === "low" || forced === "mid" || forced === "high") return forced;
+
   const cores = navigator.hardwareConcurrency ?? 4;
   // Chromium-only, and capped at 8 for privacy — absent everywhere else.
   const memory = (navigator as { deviceMemory?: number }).deviceMemory ?? 4;

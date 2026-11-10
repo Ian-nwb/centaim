@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { CAMERA } from "@/storyboard/world";
 import { DotField } from "@/three/DotField";
+import { dprFor, pickQuality, type QualityTier } from "@/three/state";
 
 /**
  * The pointer-reactive dot field on its own, as a page backdrop.
@@ -18,6 +19,9 @@ import { DotField } from "@/three/DotField";
  */
 export function DotBackdrop({ intensity = 1 }: { intensity?: number }) {
   const [on, setOn] = useState(false);
+  // Resolved on the client only, so the canvas never mounts at the wrong
+  // tier and rebuilds its grid a frame later.
+  const [tier, setTier] = useState<QualityTier>("low");
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -32,6 +36,7 @@ export function DotBackdrop({ intensity = 1 }: { intensity?: number }) {
     if (!ok) return;
     if ((navigator.hardwareConcurrency ?? 8) < 4) return;
 
+    setTier(pickQuality());
     setOn(true);
   }, []);
 
@@ -51,15 +56,25 @@ export function DotBackdrop({ intensity = 1 }: { intensity?: number }) {
     >
       <Canvas
         frameloop="demand"
-        dpr={[1, 2]}
+        /*
+          Same budget as the story page. This is a full-frame additively
+          blended field behind body copy, so on a phone it was the most
+          expensive thing on a page that is otherwise text.
+        */
+        dpr={dprFor(tier)}
         // Transparent, so the page's own background shows through.
-        gl={{ alpha: true, antialias: false, powerPreference: "high-performance" }}
+        gl={{
+          alpha: true,
+          antialias: false,
+          stencil: false,
+          powerPreference: tier === "low" ? "default" : "high-performance",
+        }}
         camera={{ fov: CAMERA.fov, near: 0.1, far: 2000, position: [0, 0, 0] }}
         // Nothing here is interactive; skip hit-testing entirely.
         events={undefined}
         style={{ pointerEvents: "none" }}
       >
-        <DotField />
+        <DotField tier={tier} />
       </Canvas>
     </div>
   );

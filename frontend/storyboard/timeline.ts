@@ -370,8 +370,75 @@ export function copyOpacityAt(p: number, beat: BeatId): number {
  */
 export const NARROW_STORY_SCALE = 1.35;
 
+/**
+ * QUALITY TIERS
+ *
+ * The tier is chosen by pickQuality() in three/state.ts, which also owns
+ * the pixel ratio (dprFor). Everything that costs a frame and is NOT the
+ * framebuffer size lives here, so there is one place to turn a dial.
+ *
+ * Fragment cost is what matters, not triangles: the whole board is ~37k
+ * tris, but the rings fill the viewport, so every extra shader feature is
+ * paid once per screen pixel per ring in front of the camera.
+ */
 export const QUALITY = {
-  high: { ringSegments: 256, tubeSegments: 128, bloom: true, fringe: true },
-  mid: { ringSegments: 160, tubeSegments: 72, bloom: true, fringe: false },
-  low: { ringSegments: 96, tubeSegments: 40, bloom: false, fringe: false },
+  high: {
+    /* Lathe segments per ring. 256 was 1.4 degrees per segment on a shape
+       never more than ~1000px across — invisible, at 1.6x the vertex cost
+       of a tessellation nobody can find the edge of. */
+    ringSegments: 160,
+    tubeSegments: 128,
+    bloom: true,
+    fringe: true,
+    /** MeshPhysicalMaterial (clearcoat + 2nd IBL lobe) vs MeshStandard. */
+    physical: true,
+    /** The second directional light, and the dart's travelling pointLight. */
+    fillLight: true,
+    dartLight: true,
+    /** Dot-field grid pitch in world units. Density is quadratic in this. */
+    field: true,
+    fieldSpacing: 3.9,
+    /** Beads in the dart trail. */
+    trailBeads: 160,
+    /** Cube-camera resolution for the baked environment. */
+    envRes: 256,
+    /** Tube segments along ring 4's trend line. */
+    trendSegments: 120,
+    /** Curve segments for the extruded logo mark. */
+    markCurve: 48,
+  },
+  mid: {
+    ringSegments: 112,
+    tubeSegments: 72,
+    bloom: true,
+    fringe: false,
+    physical: false,
+    fillLight: true,
+    dartLight: true,
+    field: true,
+    fieldSpacing: 5.4,
+    trailBeads: 110,
+    envRes: 192,
+    trendSegments: 80,
+    markCurve: 32,
+  },
+  low: {
+    ringSegments: 72,
+    tubeSegments: 40,
+    bloom: false,
+    fringe: false,
+    physical: false,
+    fillLight: false,
+    dartLight: false,
+    /* The field is the largest remaining fill-rate item on a phone — it
+       draws additively across the whole frame, behind everything. Set this
+       to `false` to drop the layer outright if the tier still misses 60fps;
+       the spacing below already cuts the point count ~3.8x. */
+    field: true,
+    fieldSpacing: 7.6,
+    trailBeads: 64,
+    envRes: 128,
+    trendSegments: 48,
+    markCurve: 24,
+  },
 } as const;

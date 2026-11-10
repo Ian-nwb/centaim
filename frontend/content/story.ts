@@ -187,6 +187,7 @@ export const CONTACT = {
   directHeading: "Or skip the form.",
   phone: { display: "+63 999 605 1051", href: "tel:+639996051051" },
   email: { display: "contact@centaim.com", href: "mailto:contact@centaim.com" },
+  github: { display: "GitHub", href: "https://github.com/Centaim" },
 };
 
 export const META = {

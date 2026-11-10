@@ -1,13 +1,6 @@
-import { CONTACT, RING_BEATS } from "@/content/story";
+import { CONTACT } from "@/content/story";
 import Link from "next/link";
 import { Mark } from "@/components/Mark";
-
-/**
- * The beat headlines are written as sentences ("We aim for the styles."), so
- * trimming them for the nav leaves a lower-case first word. Capitalise it here
- * rather than in the copy — the copy is still read as prose on the page.
- */
-const sentenceCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function Footer() {
   return (
@@ -25,6 +18,14 @@ export function Footer() {
 
         <nav aria-label="Sections">
           <ul className="flex flex-wrap gap-x-7 gap-y-2.5 text-sm text-faint">
+            {/* "/" rather than "/#hero": in the scroll-story render the hero is
+                an overlay panel with no DOM id, so a hash would land nowhere.
+                The route's own top is the hero, in both renders. */}
+            <li>
+              <Link href="/" className="transition-colors hover:text-paper">
+                Home
+              </Link>
+            </li>
             <li>
               <Link href="/about" className="transition-colors hover:text-paper">
                 About
@@ -54,6 +55,19 @@ export function Footer() {
           </span>
           <a href={CONTACT.email.href} className="hover:text-paper">
             {CONTACT.email.display}
+          </a>
+          <span className="mx-3 text-gunmetal-rim" aria-hidden>
+            ·
+          </span>
+          {/* Off-site, so it opens in its own tab — and `noreferrer` keeps the
+              new tab from reaching back into this one. */}
+          <a
+            href={CONTACT.github.href}
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-paper"
+          >
+            {CONTACT.github.display}
           </a>
         </p>
         <p>© {new Date().getFullYear()} Centaim</p>

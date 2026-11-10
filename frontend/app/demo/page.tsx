@@ -46,7 +46,7 @@ export default function DemoPage() {
             <h2 className="display-tight text-3xl sm:text-4xl">What you are looking at</h2>
             <div className="flex max-w-2xl flex-col gap-5 text-lg leading-relaxed text-muted">
               <p>
-                Each demo is the front end only — real data, real rules and your own branding land
+                Each demo is the front end only - real data, real rules and your own branding land
                 in the build. Nothing here is saved, so click anything: advance a shipment, book a
                 slot, hire a candidate, clock in.
               </p>

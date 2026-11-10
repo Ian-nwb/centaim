@@ -185,7 +185,7 @@ export const CONTACT = {
   messageField: { name: "message", label: "What do you need built?", required: true },
   submit: "Send it",
   directHeading: "Or skip the form.",
-  phone: { display: "+63 919 493 7885", href: "tel:+639194937885" },
+  phone: { display: "+63 999 605 1051", href: "tel:+639996051051" },
   email: { display: "contact@centaim.com", href: "mailto:contact@centaim.com" },
 };
 

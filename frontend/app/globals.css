@@ -116,3 +116,16 @@
   filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-aim-live) 55%, transparent))
     drop-shadow(0 0 22px color-mix(in srgb, var(--color-aim) 35%, transparent));
 }
+
+/* ── Enquiry stepper ────────────────────────────────────────────────────
+   One question on screen at a time, but every step stays in the DOM:
+   answers survive Back, and the <noscript> rule inside the form flips
+   `.step-inactive` to `display: revert` so a visitor without JavaScript
+   gets the whole thing as one long form that posts straight to Formspree.
+   `.js-only` is the other half of that — the step counter and the Next
+   button, which only mean anything once the stepper is running — it needs
+   no rule here, only the one in that noscript block, where it is declared
+   after the reveal so it wins for a control that carries both. */
+.step-inactive {
+  display: none;
+}

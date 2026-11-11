@@ -177,17 +177,45 @@ export const CONTACT = {
   id: "contact" as const,
   headline: "Your turn to throw.",
   body: "Tell us what needs hitting. We'll come back with scope, timeline and cost - no obligation, no sales sequence.",
-  fields: [
-    { name: "name", label: "Name", type: "text", autoComplete: "name", required: true },
-    { name: "email", label: "Email", type: "email", autoComplete: "email", required: true },
-    { name: "phone", label: "Phone", type: "tel", autoComplete: "tel", required: false },
+  /**
+   * The enquiry is asked one question at a time. Order matters: these are
+   * the steps, and `name` is the field name Formspree receives.
+   */
+  choiceSteps: [
+    {
+      name: "service",
+      question: "What service do you need?",
+      options: ["Custom Web/App Development", "UI Design", "System & Services"],
+    },
+    {
+      name: "timeline",
+      question: "What is your expected timeline?",
+      options: ["Under 1 mo", "1-2 Month/s", "3-6 Months", "1+ Year"],
+    },
   ],
-  messageField: { name: "message", label: "What do you need built?", required: true },
+  detailsStep: {
+    question: "Personal Information",
+    fields: [
+      { name: "name", label: "Name", type: "text", autoComplete: "name", required: true },
+      {
+        name: "phone",
+        label: "Phone Number",
+        type: "tel",
+        autoComplete: "tel",
+        required: true,
+      },
+      { name: "email", label: "Email", type: "email", autoComplete: "email", required: true },
+    ],
+  },
+  next: "Next",
+  back: "Back",
   submit: "Send it",
   directHeading: "Or skip the form.",
   phone: { display: "+63 999 605 1051", href: "tel:+639996051051" },
   email: { display: "contact@centaim.com", href: "mailto:contact@centaim.com" },
   github: { display: "GitHub", href: "https://github.com/Centaim" },
+  /** Same number as `phone`, digits only — wa.me rejects +, spaces and dashes. */
+  whatsapp: { number: "639996051051" },
 };
 
 export const META = {
